@@ -1,6 +1,5 @@
 package com.collinswebsite.db;
 
-import java.nio.BufferUnderflowException;
 import java.util.concurrent.CompletionStage;
 
 public class FullScanCursor implements Cursor {
@@ -45,23 +44,16 @@ public class FullScanCursor implements Cursor {
     }
 
     @Override
-    public boolean isNextReady() {
-        /*
-        TODO: use a thread to prefetch rows
-         */
-        return readBufferHead < writeBufferHead && rows[readBufferHead] != null;
-    }
-
-    @Override
     public Row getNext() throws DeserializationException {
-        if(readBufferHead >= writeBufferHead) {
-            throw new BufferUnderflowException();
-        }
-        Row r = rows[readBufferHead++];
-
         if(writeBufferHead - readBufferHead <= REFILL_THRESHOLD) {
             fetchRows();
         }
+
+        if(readBufferHead >= writeBufferHead) {
+            return null;
+        }
+
+        Row r = rows[readBufferHead++];
 
         return r;
     }

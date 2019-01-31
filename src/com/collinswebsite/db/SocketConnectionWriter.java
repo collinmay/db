@@ -20,9 +20,16 @@ public class SocketConnectionWriter {
 
     public boolean process() {
         System.out.println("writer pumping out...");
-        while(!cursor.isAtEnd() && cursor.isNextReady() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
+        boolean ranOut = false;
+        while(!cursor.isAtEnd() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
             try {
-                cursor.getNext().serialize(state.buffer);
+                Row r = cursor.getNext();
+                if(r == null) {
+                    // we have run out of rows
+                    ranOut = true;
+                    break;
+                }
+                r.serialize(state.buffer);
             } catch(Throwable throwable) {
                 state.enterErrorState(throwable);
                 return true;
@@ -38,7 +45,7 @@ public class SocketConnectionWriter {
                 return true;
             }
         } else {
-            if(!cursor.isNextReady() && !cursor.isAtEnd()) {
+            if(ranOut && !cursor.isAtEnd()) {
                 // cursor needs to fetch more rows...
                 state.key.interestOps(0); // we're not interested in being able to write anymore
 
