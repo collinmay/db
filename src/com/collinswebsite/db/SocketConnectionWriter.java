@@ -54,6 +54,7 @@ public class SocketConnectionWriter {
                 });
             }
         }
+
         if(cursor.isAtEnd()) {
             try {
                 state.channel.close();

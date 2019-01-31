@@ -25,7 +25,7 @@ public class FullScanCursor implements Cursor {
 
     private void compact() {
         if(readBufferHead > 0) {
-            System.arraycopy(rows, readBufferHead, rows, 0, readBufferHead);
+            System.arraycopy(rows, readBufferHead, rows, 0, rows.length - readBufferHead);
             writeBufferHead -= readBufferHead;
             readBufferHead = 0;
         }
@@ -54,6 +54,7 @@ public class FullScanCursor implements Cursor {
         }
 
         Row r = rows[readBufferHead++];
+        readIndex++;
 
         return r;
     }
