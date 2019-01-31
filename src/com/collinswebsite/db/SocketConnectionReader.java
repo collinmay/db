@@ -24,7 +24,11 @@ public class SocketConnectionReader {
             SelectionKey key = channel.register(sel, SelectionKey.OP_READ, (BooleanSupplier) SocketConnectionReader.this::process);
             this.state = new SocketConnectionState(channel, key);
         } catch(IOException e) {
-            state.enterErrorState(e);
+            if(state != null) {
+                state.enterErrorState(e);
+            } else {
+                e.printStackTrace();
+            }
         }
 
         state.buffer.clear();
