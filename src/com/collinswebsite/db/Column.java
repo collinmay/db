@@ -1,5 +1,7 @@
 package com.collinswebsite.db;
 
+import com.collinswebsite.db.types.DataType;
+
 /**
  * Represents a column within a table.
  */

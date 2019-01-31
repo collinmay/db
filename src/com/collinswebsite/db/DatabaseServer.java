@@ -1,12 +1,16 @@
 package com.collinswebsite.db;
 
+import com.collinswebsite.db.types.IntegerDataType;
+import com.collinswebsite.db.types.StringDataType;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 public class DatabaseServer {
@@ -56,8 +60,8 @@ public class DatabaseServer {
     public static void main(String[] args) throws IOException {
         DatabaseServer db = new DatabaseServer();
         db.addTable(new Table("people",
-                new Column("birth_year", DataType.integer(true)),
-                new Column("name", DataType.string(64))));
+                new Column("birth_year", new IntegerDataType()),
+                new Column("name", new StringDataType(64))));
 
         try {
             db.launch();
