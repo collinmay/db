@@ -22,7 +22,6 @@ public class FullScanCursor implements Cursor {
     public FullScanCursor(Table table) {
         this.table = table;
         this.rows = new Row[BUFFER_SIZE];
-        fetchRows();
     }
 
     private void compact() {
@@ -33,10 +32,10 @@ public class FullScanCursor implements Cursor {
         }
     }
 
-    private void fetchRows() {
+    private void fetchRows() throws DeserializationException {
         compact();
         while(writeBufferHead < rows.length && writeIndex < table.getTotalCount()) {
-            rows[writeBufferHead++] = new Row(table, writeIndex++);
+            rows[writeBufferHead++] = table.fetch(writeIndex++);
         }
     }
 
@@ -47,11 +46,14 @@ public class FullScanCursor implements Cursor {
 
     @Override
     public boolean isNextReady() {
-        return readBufferHead < writeBufferHead && rows[readBufferHead].isReady();
+        /*
+        TODO: use a thread to prefetch rows
+         */
+        return readBufferHead < writeBufferHead && rows[readBufferHead] != null;
     }
 
     @Override
-    public Row getNext() {
+    public Row getNext() throws DeserializationException {
         if(readBufferHead >= writeBufferHead) {
             throw new BufferUnderflowException();
         }
@@ -66,10 +68,7 @@ public class FullScanCursor implements Cursor {
 
     @Override
     public CompletionStage<Void> await() {
-        if(readBufferHead >= writeBufferHead) {
-            fetchRows();
-        }
-        return rows[readBufferHead].getCacheCompletion();
+        throw new IllegalStateException(); // with this synchronous implementation, there should never be a need to await.
     }
 
     @Override

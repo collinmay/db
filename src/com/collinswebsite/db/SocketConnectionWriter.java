@@ -22,7 +22,7 @@ public class SocketConnectionWriter {
         System.out.println("writer pumping out...");
         while(!cursor.isAtEnd() && cursor.isNextReady() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
             try {
-                cursor.getNext().assertOk().serialize(state.buffer);
+                cursor.getNext().serialize(state.buffer);
             } catch(Throwable throwable) {
                 state.enterErrorState(throwable);
                 return true;

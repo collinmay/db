@@ -3,26 +3,24 @@ package com.collinswebsite.db;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 public class Table {
     private final String name;
     private final List<Column> columns;
     private final int rowSize;
-    private AsynchronousFileChannel channel;
+    private FileChannel channel;
 
     public Table(String name, List<Column> columns) throws IOException {
         this.name = name;
         this.columns = columns;
         this.rowSize = columns.stream().mapToInt((c) -> c.getType().getSize()).sum();
-        this.channel = AsynchronousFileChannel.open(FileSystems.getDefault().getPath("tables", name),
+        this.channel = FileChannel.open(FileSystems.getDefault().getPath("tables", name),
                 StandardOpenOption.READ,
                 StandardOpenOption.WRITE,
                 //StandardOpenOption.APPEND,
@@ -47,26 +45,23 @@ public class Table {
         return this.rowSize;
     }
 
-    public CompletionStage<List<Object>> fetch(int id) {
+    public Row fetch(int id) throws DeserializationException {
         ByteBuffer buffer = ByteBuffer.allocate(rowSize);
-        CompletableFuture<Integer> future = new CompletableFuture<>();
-        channel.read(buffer, (long) id * (long) this.rowSize, future, FutureCompletionHandler.integer());
-        return future.thenCompose((readLength) -> { // compose used for decent error handling
-           if(readLength != rowSize) {
-               return FutureUtil.exceptionalFuture(new EOFException());
-           } else {
-               buffer.flip();
-               List<Object> values = new ArrayList<>(columns.size());
-               try {
-                   for(int i = 0; i < columns.size(); i++) {
-                       values.add(columns.get(i).getType().deserialize(buffer));
-                   }
-               } catch(DeserializationException e) {
-                   return FutureUtil.exceptionalFuture(e);
-               }
-               return CompletableFuture.completedFuture(values);
-           }
-        });
+        try {
+            if(channel.read(buffer, (long) id * (long) this.rowSize) != rowSize) {
+                throw new DeserializationException(new EOFException());
+            }
+        } catch(IOException e) {
+            throw new DeserializationException(e);
+        }
+
+        buffer.flip();
+        List<Object> values = new ArrayList<>(columns.size());
+        for(int i = 0; i < columns.size(); i++) {
+            values.add(columns.get(i).getType().deserialize(buffer));
+        }
+
+        return new Row(this, id, values);
     }
 
     public FullScanCursor createFullTableScanCursor() {
