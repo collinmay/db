@@ -19,6 +19,9 @@ public class Table {
     public Table(String name, List<Column> columns) throws IOException {
         this.name = name;
         this.columns = columns;
+        for(int i = 0; i < this.columns.size(); i++) {
+            this.columns.get(i).setPosition(i);
+        }
         this.rowSize = columns.stream().mapToInt((c) -> c.getType().getSize()).sum();
         this.channel = FileChannel.open(FileSystems.getDefault().getPath("tables", name),
                 StandardOpenOption.READ,
@@ -78,5 +81,9 @@ public class Table {
 
     public List<Column> getColumns() {
         return columns;
+    }
+
+    public Column getColumn(String name) {
+        return columns.stream().filter((c) -> c.getName().equals(name)).findFirst().orElse(null);
     }
 }

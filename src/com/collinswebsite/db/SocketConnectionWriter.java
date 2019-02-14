@@ -2,14 +2,17 @@ package com.collinswebsite.db;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.List;
 
 public class SocketConnectionWriter {
     private final Cursor cursor;
+    private final List<Column> columns;
     private final SocketConnectionState state;
 
-    public SocketConnectionWriter(SocketConnectionState state, Cursor cursor) {
+    public SocketConnectionWriter(SocketConnectionState state, Cursor cursor, List<Column> columns) {
         this.state = state;
         this.cursor = cursor;
+        this.columns = columns;
 
         // adjust our interest
         state.key.interestOps(SelectionKey.OP_WRITE);
@@ -29,7 +32,11 @@ public class SocketConnectionWriter {
                     ranOut = true;
                     break;
                 }
-                r.serialize(state.buffer);
+                columns.stream().map(r::getValueForColumn).forEach((o) -> {
+                    state.buffer.put(o.toString().getBytes());
+                    state.buffer.put((byte) ',');
+                });
+                state.buffer.put((byte) '\n');
             } catch(Throwable throwable) {
                 state.enterErrorState(throwable);
                 return true;
