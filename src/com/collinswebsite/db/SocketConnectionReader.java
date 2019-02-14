@@ -11,8 +11,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -25,21 +23,14 @@ public class SocketConnectionReader {
     private SocketConnectionState state;
     private StringBuilder currentRequest = new StringBuilder();
 
-    public SocketConnectionReader(DatabaseServer db, SocketChannel channel, Selector sel) {
-        this.db = db;
+    public SocketConnectionReader(SocketConnectionState state) {
+        this.state = state;
+        this.db = state.getDb();
 
-        try {
-            channel.configureBlocking(false);
-            SelectionKey key = channel.register(sel, SelectionKey.OP_READ, (BooleanSupplier) SocketConnectionReader.this::process);
-            this.state = new SocketConnectionState(channel, key);
-        } catch(IOException e) {
-            if(state != null) {
-                state.enterErrorState(e);
-            } else {
-                e.printStackTrace();
-            }
-        }
+        // adjust our interest
+        state.key.interestOps(SelectionKey.OP_READ);
 
+        // reset the buffer
         state.buffer.clear();
         state.buffer.flip();
     }
@@ -75,32 +66,35 @@ public class SocketConnectionReader {
 
                 if(ch == '\n') {
                     // Reached end of request. Parse it and process it.
-                    System.out.println("Connection: received \"" + currentRequest.toString() + "\"");
+                    try {
+                        MiniQLLexer lexer = new MiniQLLexer(CharStreams.fromString(currentRequest.toString()));
+                        CommonTokenStream tokens = new CommonTokenStream(lexer);
+                        MiniQLParser parser = new MiniQLParser(tokens);
+                        MiniQLParser.StatementContext ctx = parser.statement();
 
-                    MiniQLLexer lexer = new MiniQLLexer(CharStreams.fromString(currentRequest.toString()));
-                    CommonTokenStream tokens = new CommonTokenStream(lexer);
-                    MiniQLParser parser = new MiniQLParser(tokens);
-                    MiniQLParser.StatementContext ctx = parser.statement();
+                        Table table = db.getTable(ctx.tableName().getText());
+                        if(table == null) {
+                            throw new ParseCancellationException("no such table: " + ctx.tableName().getText());
+                        }
 
-                    Table table = db.getTable(ctx.tableName().getText());
-                    if(table == null) {
-                        throw new ParseCancellationException("no such table: " + ctx.tableName().getText());
+                        FullScanCursor cursor = table.createFullTableScanCursor();
+
+                        List<Column> columns;
+                        if(ctx.columnList() == null) {
+                            columns = table.getColumns();
+                        } else {
+                            columns = new ColumnListVisitor(table).visit(new ArrayList<>(), ctx.columnList());
+                        }
+
+                        state.key.attach((BooleanSupplier) new SocketConnectionResponseWriter(
+                                state,
+                                cursor,
+                                columns)::process);
+                    } catch(ParseCancellationException e) {
+                        state.key.attach((BooleanSupplier) new SocketConnectionErrorWriter(
+                                state,
+                                "ERROR: " + e.getMessage())::process);
                     }
-
-                    FullScanCursor cursor = table.createFullTableScanCursor();
-
-                    List<Column> columns;
-                    if(ctx.columnList() == null) {
-                        columns = table.getColumns();
-                    } else {
-                        columns = new ColumnListVisitor(table).visit(new ArrayList<>(), ctx.columnList());
-                    }
-                    System.out.println(columns);
-
-                    state.key.attach((BooleanSupplier) new SocketConnectionWriter(
-                            state,
-                            cursor,
-                            columns)::process);
                 } else {
                     // Haven't reached end of request yet.
                 }

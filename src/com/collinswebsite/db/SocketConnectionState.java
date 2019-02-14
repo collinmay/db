@@ -3,7 +3,10 @@ package com.collinswebsite.db;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+
+import static java.nio.channels.SelectionKey.OP_READ;
 
 // Maintains some common state for socket connections, such as the channel, I/O buffer, and error handling.
 public class SocketConnectionState {
@@ -13,10 +16,13 @@ public class SocketConnectionState {
     public Throwable error;
 
     public ByteBuffer buffer = ByteBuffer.allocate(4096);
+    private final DatabaseServer db;
 
-    public SocketConnectionState(SocketChannel channel, SelectionKey key) {
+    public SocketConnectionState(SocketChannel channel, Selector sel, DatabaseServer db) throws IOException {
         this.channel = channel;
-        this.key = key;
+        channel.configureBlocking(false);
+        this.key = channel.register(sel, OP_READ);
+        this.db = db;
     }
 
     public void enterErrorState(Throwable e) {
@@ -43,5 +49,9 @@ public class SocketConnectionState {
      */
     public boolean hasError() {
         return error != null;
+    }
+
+    public DatabaseServer getDb() {
+        return db;
     }
 }

@@ -39,13 +39,15 @@ public class DatabaseServer {
                 SocketChannel ch;
                 try {
                     ch = server.accept();
+
+                    // connections manage their own lifetimes via their SelectionKey registration.
+                    SocketConnectionState state = new SocketConnectionState(ch, sel, this);
+                    state.key.attach((BooleanSupplier) new SocketConnectionReader(state)::process);
                 } catch(IOException e) {
                     System.out.println("Failed to accept connection:");
                     e.printStackTrace();
                     return true;
                 }
-
-                new SocketConnectionReader(this, ch, sel); // connections manage their own lifetimes via their SelectionKey registration.
             }
             return true;
         });

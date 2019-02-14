@@ -3,13 +3,14 @@ package com.collinswebsite.db;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
-public class SocketConnectionWriter {
+public class SocketConnectionResponseWriter {
     private final Cursor cursor;
     private final List<Column> columns;
     private final SocketConnectionState state;
 
-    public SocketConnectionWriter(SocketConnectionState state, Cursor cursor, List<Column> columns) {
+    public SocketConnectionResponseWriter(SocketConnectionState state, Cursor cursor, List<Column> columns) {
         this.state = state;
         this.cursor = cursor;
         this.columns = columns;
@@ -22,7 +23,6 @@ public class SocketConnectionWriter {
     }
 
     public boolean process() {
-        System.out.println("writer pumping out...");
         boolean ranOut = false;
         while(!cursor.isAtEnd() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
             try {
@@ -63,12 +63,7 @@ public class SocketConnectionWriter {
         }
 
         if(cursor.isAtEnd()) {
-            try {
-                state.channel.close();
-            } catch(IOException e) {
-                // not much to do here...
-            }
-            state.key.cancel();
+            state.key.attach((BooleanSupplier) new SocketConnectionReader(state)::process);
         }
         return true;
     }
