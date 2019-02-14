@@ -20,4 +20,8 @@ public class Row {
             columns.get(i).getType().serialize(buffer, values.get(i));
         }
     }
+
+    public Object getValueForColumn(Column column) {
+        return values.get(column.getPosition());
+    }
 }

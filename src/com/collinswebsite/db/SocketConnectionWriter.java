@@ -2,14 +2,17 @@ package com.collinswebsite.db;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.List;
 
 public class SocketConnectionWriter {
     private final Cursor cursor;
+    private final List<Column> columns;
     private final SocketConnectionState state;
 
-    public SocketConnectionWriter(SocketConnectionState state, Cursor cursor) {
+    public SocketConnectionWriter(SocketConnectionState state, Cursor cursor, List<Column> columns) {
         this.state = state;
         this.cursor = cursor;
+        this.columns = columns;
 
         // adjust our interest
         state.key.interestOps(SelectionKey.OP_WRITE);

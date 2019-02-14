@@ -16,7 +16,7 @@ public class FullScanCursor implements Cursor {
     private int writeIndex = 0; // tracks the last row ID we requested
     private int readIndex = 0; // tracks the last row ID that was read out
 
-    private Table table;
+    private final Table table;
 
     public FullScanCursor(Table table) {
         this.table = table;

@@ -73,4 +73,8 @@ public class DatabaseServer {
     public Table defaultTable() {
         return tables.values().stream().findFirst().get();
     }
+
+    public Table getTable(String name) {
+        return tables.get(name);
+    }
 }
