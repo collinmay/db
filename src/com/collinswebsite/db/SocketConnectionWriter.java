@@ -32,7 +32,11 @@ public class SocketConnectionWriter {
                     ranOut = true;
                     break;
                 }
-                r.serialize(state.buffer);
+                columns.stream().map(r::getValueForColumn).forEach((o) -> {
+                    state.buffer.put(o.toString().getBytes());
+                    state.buffer.put((byte) ',');
+                });
+                state.buffer.put((byte) '\n');
             } catch(Throwable throwable) {
                 state.enterErrorState(throwable);
                 return true;
