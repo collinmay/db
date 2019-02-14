@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class StringDataType implements DataType {
+    public static final StringDataType DEFAULT = new StringDataType(-1);
     private final int maximumLength;
 
     public StringDataType(int maximumLength) {
@@ -42,5 +43,15 @@ public class StringDataType implements DataType {
     @Override
     public int getSize() {
         return 4 + maximumLength;
+    }
+
+    @Override
+    public boolean isComparable(DataType other) {
+        return other instanceof StringDataType;
+    }
+
+    @Override
+    public String getName() {
+        return "string";
     }
 }

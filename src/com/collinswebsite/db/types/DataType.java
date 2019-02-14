@@ -12,4 +12,7 @@ public interface DataType {
     Object deserialize(ByteBuffer buffer) throws DeserializationException;
     void serialize(ByteBuffer buffer, Object o) throws SerializationException;
     int getSize();
+
+    boolean isComparable(DataType other);
+    String getName();
 }

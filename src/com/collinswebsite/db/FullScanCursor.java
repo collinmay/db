@@ -1,5 +1,9 @@
 package com.collinswebsite.db;
 
+import com.collinswebsite.db.miniql.Expression;
+import com.collinswebsite.db.miniql.InvalidExpressionException;
+import com.collinswebsite.db.types.BooleanDataType;
+
 import java.util.concurrent.CompletionStage;
 
 public class FullScanCursor implements Cursor {
@@ -14,9 +18,10 @@ public class FullScanCursor implements Cursor {
     private int readBufferHead = 0; // tracks how many entries in rows have been read out
 
     private int writeIndex = 0; // tracks the last row ID we requested
-    private int readIndex = 0; // tracks the last row ID that was read out
+    private int readIndex = 0; // tracks how many rows have been read out or skipped
 
     private final Table table;
+    private Expression filter;
 
     public FullScanCursor(Table table) {
         this.table = table;
@@ -34,7 +39,12 @@ public class FullScanCursor implements Cursor {
     private void fetchRows() throws DeserializationException {
         compact();
         while(writeBufferHead < rows.length && writeIndex < table.getTotalCount()) {
-            rows[writeBufferHead++] = table.fetch(writeIndex++);
+            Row r = table.fetch(writeIndex++);
+            if(filter == null || filter.evaluateAsBoolean(r)) {
+                rows[writeBufferHead++] = r;
+            } else {
+                readIndex++; // skip-
+            }
         }
     }
 
@@ -67,5 +77,13 @@ public class FullScanCursor implements Cursor {
     @Override
     public Table getTable() {
         return table;
+    }
+
+    public void setFilter(Expression filter) throws InvalidExpressionException {
+        filter.validate();
+        if(!(filter.getType() instanceof BooleanDataType)) {
+            throw new InvalidExpressionException("expected boolean expression");
+        }
+        this.filter = filter;
     }
 }

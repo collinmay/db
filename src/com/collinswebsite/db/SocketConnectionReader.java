@@ -1,8 +1,6 @@
 package com.collinswebsite.db;
 
-import com.collinswebsite.db.miniql.ColumnListVisitor;
-import com.collinswebsite.db.miniql.MiniQLLexer;
-import com.collinswebsite.db.miniql.MiniQLParser;
+import com.collinswebsite.db.miniql.*;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -86,14 +84,19 @@ public class SocketConnectionReader {
                             columns = new ColumnListVisitor(table).visit(new ArrayList<>(), ctx.columnList());
                         }
 
+                        if(ctx.whereFilter != null) {
+                            cursor.setFilter(new ExpressionVisitor(table).visit(ctx.whereFilter));
+                        }
+
                         state.key.attach((BooleanSupplier) new SocketConnectionResponseWriter(
                                 state,
                                 cursor,
                                 columns)::process);
-                    } catch(ParseCancellationException e) {
+                    } catch(Exception e) {
+                        e.printStackTrace();
                         state.key.attach((BooleanSupplier) new SocketConnectionErrorWriter(
                                 state,
-                                "ERROR: " + e.getMessage())::process);
+                                "ERROR: " + e.toString())::process);
                     }
                 } else {
                     // Haven't reached end of request yet.
