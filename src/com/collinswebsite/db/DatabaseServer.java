@@ -64,6 +64,11 @@ public class DatabaseServer {
         db.addTable(new Table("people",
                 new Column("birth_year", new IntegerDataType()),
                 new Column("name", new StringDataType(64))));
+        db.addTable(new Table("cities",
+                new Column("name", new StringDataType(35)),
+                new Column("country_code", new StringDataType(3)),
+                new Column("district", new StringDataType(30)),
+                new Column("population", new IntegerDataType())));
 
         try {
             db.launch();
