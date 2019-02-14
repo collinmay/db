@@ -24,8 +24,8 @@ public class SocketConnectionResponseWriter {
 
     public boolean process() {
         boolean ranOut = false;
-        while(!cursor.isAtEnd() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
-            try {
+        try {
+            while(!cursor.isAtEnd() && state.buffer.remaining() >= cursor.getTable().getRowSize()) {
                 Row r = cursor.getNext();
                 if(r == null) {
                     // we have run out of rows
@@ -37,33 +37,33 @@ public class SocketConnectionResponseWriter {
                     state.buffer.put((byte) ',');
                 });
                 state.buffer.put((byte) '\n');
-            } catch(Throwable throwable) {
-                state.enterErrorState(throwable);
-                return true;
             }
-        }
 
-        state.buffer.flip();
-        if(state.buffer.remaining() > 0) {
-            try {
-                state.channel.write(state.buffer);
-            } catch(IOException e) {
-                state.enterErrorState(e);
-                return true;
+            state.buffer.flip();
+            if(state.buffer.remaining() > 0) {
+                try {
+                    state.channel.write(state.buffer);
+                } catch(IOException e) {
+                    state.enterErrorState(e);
+                    return true;
+                }
+            } else {
+                if(ranOut && !cursor.isAtEnd()) {
+                    // cursor needs to fetch more rows...
+                    state.key.interestOps(0); // we're not interested in being able to write anymore
+
+                    cursor.await().thenRun(() -> {
+                        state.key.interestOps(SelectionKey.OP_WRITE); // we are now interested in writing again.
+                    });
+                }
             }
-        } else {
-            if(ranOut && !cursor.isAtEnd()) {
-                // cursor needs to fetch more rows...
-                state.key.interestOps(0); // we're not interested in being able to write anymore
 
-                cursor.await().thenRun(() -> {
-                   state.key.interestOps(SelectionKey.OP_WRITE); // we are now interested in writing again.
-                });
+            if(cursor.isAtEnd()) {
+                state.key.attach((BooleanSupplier) new SocketConnectionReader(state)::process);
             }
-        }
-
-        if(cursor.isAtEnd()) {
-            state.key.attach((BooleanSupplier) new SocketConnectionReader(state)::process);
+        } catch(Throwable throwable) {
+            state.enterErrorState(throwable);
+            return true;
         }
         return true;
     }

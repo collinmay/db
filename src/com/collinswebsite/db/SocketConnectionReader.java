@@ -9,7 +9,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -75,17 +74,21 @@ public class SocketConnectionReader {
                             throw new ParseCancellationException("no such table: " + ctx.tableName().getText());
                         }
 
-                        FullScanCursor cursor = table.createFullTableScanCursor();
+                        Cursor cursor = table.createFullTableScanCursor();
 
                         List<Column> columns;
                         if(ctx.columnList() == null) {
                             columns = table.getColumns();
                         } else {
-                            columns = new ColumnListVisitor(table).visit(new ArrayList<>(), ctx.columnList());
+                            columns = new ColumnListVisitor(table).visitColumnList(ctx.columnList());
                         }
 
                         if(ctx.whereFilter != null) {
                             cursor.setFilter(new ExpressionVisitor(table).visit(ctx.whereFilter));
+                        }
+
+                        if(ctx.orderList != null) {
+                            cursor = new SortingCursor(cursor, new ExpressionListVisitor(table).visit(ctx.orderList));
                         }
 
                         state.key.attach((BooleanSupplier) new SocketConnectionResponseWriter(

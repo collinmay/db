@@ -1,8 +1,10 @@
 grammar MiniQL;
-statement: 'SELECT ' ('*' | columnList) ' FROM ' tableName (' WHERE ' whereFilter = expression)? ';' EOF;
+statement: 'SELECT ' ('*' | columnList) ' FROM ' tableName (' WHERE ' whereFilter = expression)? (' ORDER BY ' orderList = expressionList)? ';' EOF;
 columnList: columnName (',' columnList)?;
 columnName: IDENTIFIER;
 tableName: IDENTIFIER;
+
+expressionList: expression (',' expressionList)?;
 
 expression
   : LPAREN expression RPAREN # parenExpression
