@@ -1,5 +1,6 @@
 package com.collinswebsite.db;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -23,5 +24,13 @@ public class Row {
 
     public Object getValueForColumn(Column column) {
         return values.get(column.getPosition());
+    }
+
+    public void delete() throws IOException {
+        table.deleteRow(id);
+    }
+
+    public int getId() {
+        return id;
     }
 }

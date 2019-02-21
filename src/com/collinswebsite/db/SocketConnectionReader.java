@@ -1,15 +1,16 @@
 package com.collinswebsite.db;
 
-import com.collinswebsite.db.miniql.*;
+import com.collinswebsite.db.miniql.MiniQLLexer;
+import com.collinswebsite.db.miniql.MiniQLListener;
+import com.collinswebsite.db.miniql.MiniQLParser;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
-import java.util.List;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -67,34 +68,10 @@ public class SocketConnectionReader {
                         MiniQLLexer lexer = new MiniQLLexer(CharStreams.fromString(currentRequest.toString()));
                         CommonTokenStream tokens = new CommonTokenStream(lexer);
                         MiniQLParser parser = new MiniQLParser(tokens);
-                        MiniQLParser.StatementContext ctx = parser.statement();
+                        MiniQLParser.StatementFragmentContext ctx = parser.statement().statementFragment();
 
-                        Table table = db.getTable(ctx.tableName().getText());
-                        if(table == null) {
-                            throw new ParseCancellationException("no such table: " + ctx.tableName().getText());
-                        }
-
-                        Cursor cursor = table.createFullTableScanCursor();
-
-                        List<Column> columns;
-                        if(ctx.columnList() == null) {
-                            columns = table.getColumns();
-                        } else {
-                            columns = new ColumnListVisitor(table).visitColumnList(ctx.columnList());
-                        }
-
-                        if(ctx.whereFilter != null) {
-                            cursor.setFilter(new ExpressionVisitor(table).visit(ctx.whereFilter));
-                        }
-
-                        if(ctx.orderList != null) {
-                            cursor = new SortingCursor(cursor, new ExpressionListVisitor(table).visit(ctx.orderList));
-                        }
-
-                        state.key.attach((BooleanSupplier) new SocketConnectionResponseWriter(
-                                state,
-                                cursor,
-                                columns)::process);
+                        MiniQLListener interpreterListener = new MiniQLInterpreterListener(state, db);
+                        ParseTreeWalker.DEFAULT.walk(interpreterListener, ctx);
                     } catch(Exception e) {
                         e.printStackTrace();
                         state.key.attach((BooleanSupplier) new SocketConnectionErrorWriter(

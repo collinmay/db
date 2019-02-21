@@ -1,5 +1,13 @@
 grammar MiniQL;
-statement: 'SELECT ' ('*' | columnList) ' FROM ' tableName (' WHERE ' whereFilter = expression)? (' ORDER BY ' orderList = expressionList)? ';' EOF;
+
+statement: statementFragment ';' EOF;
+
+statementFragment
+  : 'SELECT ' ('*' | columnList) ' FROM ' tableName (' WHERE ' whereFilter = expression)? (' ORDER BY ' orderList = expressionList)? # selectStatement
+  | 'INSERT INTO ' tableName ' VALUES ' LPAREN literal (',' literal)* RPAREN # insertStatement
+  | 'DELETE FROM ' tableName (' WHERE ' whereFilter = expression)? # deleteStatement
+  ;
+
 columnList: columnName (',' columnList)?;
 columnName: IDENTIFIER;
 tableName: IDENTIFIER;

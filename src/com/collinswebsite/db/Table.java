@@ -99,8 +99,9 @@ public class Table {
     private void alterLink(int id, long link) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(FREE_LINK_FIELD_SIZE);
         buffer.putLong(link);
+        buffer.flip();
         if(channel.write(buffer, (long) id * (long) this.rowSize) != FREE_LINK_FIELD_SIZE) {
-            throw new IOException("couldn't write completely");
+            throw new IOException("couldn't write completely (altering link[" + id + "] = " + link);
         }
     }
 

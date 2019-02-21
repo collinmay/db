@@ -66,6 +66,9 @@ public class DatabaseServer {
                 new Column("country_code", new StringDataType(3)),
                 new Column("district", new StringDataType(30)),
                 new Column("population", new IntegerDataType())));
+        db.addTable(new Table("test",
+                new Column("first", new IntegerDataType()),
+                new Column("second", new StringDataType(32))));
 
         try {
             db.launch();
