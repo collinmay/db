@@ -61,9 +61,6 @@ public class DatabaseServer {
 
     public static void main(String[] args) throws IOException {
         DatabaseServer db = new DatabaseServer();
-        db.addTable(new Table("people",
-                new Column("birth_year", new IntegerDataType()),
-                new Column("name", new StringDataType(64))));
         db.addTable(new Table("cities",
                 new Column("name", new StringDataType(35)),
                 new Column("country_code", new StringDataType(3)),

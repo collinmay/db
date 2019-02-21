@@ -38,19 +38,19 @@ public class FullScanCursor implements Cursor {
 
     private void fetchRows() throws DeserializationException {
         compact();
-        while(writeBufferHead < rows.length && writeIndex < table.getTotalCount()) {
-            Row r = table.fetch(writeIndex++);
-            if(filter == null || filter.evaluateAsBoolean(r)) {
+        while(writeBufferHead < rows.length && writeIndex < table.getCapacity()) {
+            Row r = table.fetch(writeIndex++); // returns null for deleted rows
+            if(r != null && (filter == null || filter.evaluateAsBoolean(r))) {
                 rows[writeBufferHead++] = r;
             } else {
-                readIndex++; // skip-
+                readIndex++; // skip
             }
         }
     }
 
     @Override
     public boolean isAtEnd() {
-        return readIndex >= table.getTotalCount();
+        return readIndex >= table.getCapacity();
     }
 
     @Override
