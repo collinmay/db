@@ -46,7 +46,7 @@ class BTree
   
   def node_size
     return 4 + # number of keys
-           (max_keys) * @key_size + # keys
+           (max_keys) * (8 + @key_size) + # keys
            (max_keys) * 8 + # values
            (max_children) * 8 + # child pointers
            1 # is leaf?
@@ -59,7 +59,7 @@ class BTree
   end
   
   def search(key)
-    @root.search([key].pack("Z" + @key_size.to_s))
+    @root.search(key)
   end
 
   def insert(key, value)
@@ -144,7 +144,8 @@ class BTreeNode
 
     @num_keys = f.read(4).unpack("L>").first
     @keys = @tree.max_keys.times.map do
-      f.read(@tree.key_size)
+      l, b = f.read(8 + @tree.key_size).unpack("Q<a*")
+      b[0, l]
     end
     @values = f.read(8 * @tree.max_keys).unpack("Q>*")
     @ptrs = f.read(8 * @tree.max_children).unpack("Q>*")
@@ -158,7 +159,7 @@ class BTreeNode
     f.pos = @tree.header_size + @tree.node_size * @location
 
     f.write([@num_keys].pack("L>"))
-    f.write(@keys.join)
+    f.write(@keys.map do |k| [(k || "").bytesize, k].pack("Q>a" + @tree.key_size.to_s) end.join)
     f.write(@values.pack("Q>*"))
     f.write(@ptrs.pack("Q>*"))
     f.write([@is_leaf ? 1 : 0].pack("C"))
@@ -275,7 +276,7 @@ File.open("tables/cities", "wb") do |f|
       end
       f.write([0, fields[0].bytesize, fields[0], fields[1].bytesize, fields[1], fields[2].bytesize, fields[2], fields[3]].pack(ROW_FORMAT))
       
-      bt.insert([fields[0]].pack("Z35"), index)
+      bt.insert(fields[0], index)
       index+= 1
     end
 
