@@ -1,4 +1,13 @@
 package com.collinswebsite.db;
 
-public class SerializationException extends Throwable {
+import java.io.EOFException;
+
+public class SerializationException extends Exception {
+    public SerializationException(EOFException e) {
+        super(e);
+    }
+
+    public SerializationException() {
+
+    }
 }

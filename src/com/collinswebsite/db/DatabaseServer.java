@@ -10,6 +10,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
@@ -59,13 +60,20 @@ public class DatabaseServer {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, DeserializationException {
         DatabaseServer db = new DatabaseServer();
-        db.addTable(new Table("cities",
+        Table cities = new Table("cities",
                 new Column("name", new StringDataType(35)),
                 new Column("country_code", new StringDataType(3)),
                 new Column("district", new StringDataType(30)),
-                new Column("population", new IntegerDataType())));
+                new Column("population", new IntegerDataType()));
+        BTreeIndex index = new BTreeIndex(cities.getColumn("name"), "cities-names");
+        for(Iterator<BTreeIndex.Entry> it = index.iterate(new byte[0]); it.hasNext(); ) {
+            BTreeIndex.Entry e = it.next();
+            System.out.println(new String(e.key) + " -> " + e.value);
+        }
+        cities.setPrimaryIndex(index);
+        db.addTable(cities);
         db.addTable(new Table("test",
                 new Column("first", new IntegerDataType()),
                 new Column("second", new StringDataType(32))));

@@ -28,6 +28,7 @@ public class Table {
     private final List<Column> columns;
     private final int rowSize;
     private FileChannel channel;
+    private TableIndex primaryIndex;
 
     public Table(String name, List<Column> columns) throws IOException {
         this.name = name;
@@ -171,5 +172,9 @@ public class Table {
 
     public Column getColumn(String name) {
         return columns.stream().filter((c) -> c.getName().equals(name)).findFirst().orElse(null);
+    }
+
+    public void setPrimaryIndex(TableIndex index) {
+        primaryIndex = index;
     }
 }
