@@ -204,6 +204,7 @@ class BTreeNode
     end
     
     new_node = @tree.allocate_node
+    new_node.is_leaf = old_node.is_leaf
     t = @tree.minimum_degree
 
     split_key = old_node.keys[t-1]
